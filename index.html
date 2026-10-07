@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快搜图 · 免费图库搜索</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --accent: #4f6ef7;
+    --accent-dark: #3b55d9;
+    --bg: #f7f8fb;
+    --card-bg: #ffffff;
+    --text: #22242a;
+    --text-sub: #7a7f8c;
+    --radius: 14px;
+    --shadow: 0 4px 18px rgba(30, 40, 90, 0.08);
+  }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部区域 ===== */
+  header {
+    text-align: center;
+    padding: 56px 20px 24px;
+  }
+  .logo {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(120deg, #4f6ef7, #9a5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .logo span { font-size: 22px; font-weight: 600; }
+  .slogan { margin-top: 8px; color: var(--text-sub); font-size: 15px; }
+
+  /* ===== 搜索框 ===== */
+  .search-wrap {
+    max-width: 640px;
+    margin: 26px auto 0;
+    display: flex;
+    gap: 10px;
+  }
+  .search-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 2px solid #e6e8f0;
+    border-radius: 999px;
+    padding: 0 8px 0 20px;
+    box-shadow: var(--shadow);
+    transition: border-color .2s;
+  }
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-box svg { flex-shrink: 0; opacity: .45; }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    padding: 14px 12px;
+    background: transparent;
+    color: var(--text);
+  }
+  .search-box input::placeholder { color: #b4b8c4; }
+  .search-btn {
+    border: none;
+    background: linear-gradient(120deg, var(--accent), #7b5cf6);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 14px rgba(79, 110, 247, .35);
+  }
+  .search-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79, 110, 247, .45); }
+  .search-btn:active { transform: translateY(0); }
+
+  /* ===== 热门标签 ===== */
+  .hotwords {
+    max-width: 640px;
+    margin: 16px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .chip {
+    border: 1px solid #e2e4ee;
+    background: #fff;
+    color: var(--text-sub);
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { color: var(--accent); border-color: var(--accent); background: #f0f3ff; }
+
+  /* ===== 图源切换 ===== */
+  .tabs {
+    max-width: 960px;
+    margin: 34px auto 0;
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+  }
+  .tab {
+    border: 1px solid #e2e4ee;
+    background: #fff;
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab .src-note { font-size: 12px; opacity: .7; margin-left: 4px; }
+  .tab.active {
+    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 3px 10px rgba(79, 110, 247, .3);
+  }
+  .tab.active .src-note { opacity: .85; }
+
+  /* ===== 状态提示 ===== */
+  .status {
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 15px;
+    padding: 70px 20px;
+    line-height: 1.8;
+  }
+  .status .big { font-size: 52px; display: block; margin-bottom: 12px; }
+  .status.error { color: #d9534f; }
+  .spinner {
+    width: 34px; height: 34px;
+    border: 3px solid #e6e8f0;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 14px;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== 瀑布流 ===== */
+  .gallery {
+    max-width: 1280px;
+    margin: 24px auto 0;
+    padding: 0 20px 60px;
+    columns: 4 240px;
+    column-gap: 16px;
+  }
+  .card {
+    position: relative;
+    break-inside: avoid;
+    margin-bottom: 16px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+    cursor: zoom-in;
+    animation: fadeUp .4s ease both;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .card img {
+    width: 100%;
+    display: block;
+    min-height: 60px;
+    background: #eef0f5;
+  }
+  .card .info {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 26px 14px 12px;
+    background: linear-gradient(transparent, rgba(10, 14, 30, .78));
+    color: #fff;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .card:hover .info { opacity: 1; }
+  .info .title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .info .meta { font-size: 11px; opacity: .75; margin-top: 3px; }
+
+  /* ===== 加载更多 ===== */
+  .more-wrap { text-align: center; padding: 0 0 80px; }
+  .more-btn {
+    border: none;
+    background: #fff;
+    border: 1px solid #dcdfee;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 46px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s;
+    box-shadow: var(--shadow);
+  }
+  .more-btn:hover { background: var(--accent); color: #fff; }
+  .more-btn:disabled { opacity: .5; cursor: default; }
+
+  /* ===== 大图预览 ===== */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 14, 24, .88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 40px;
+  }
+  .lightbox.open { display: flex; }
+  .lb-body {
+    max-width: min(1000px, 92vw);
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .lb-body img {
+    max-width: 100%;
+    max-height: 72vh;
+    border-radius: 10px;
+    margin: 0 auto;
+    display: block;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+  }
+  .lb-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: #dfe2ee;
+    font-size: 14px;
+  }
+  .lb-bar .desc {
+    max-width: 480px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb-btn {
+    border: 1px solid rgba(255, 255, 255, .25);
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    font-size: 14px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .lb-btn:hover { background: rgba(255, 255, 255, .2); }
+  .lb-btn.primary { background: var(--accent); border-color: var(--accent); }
+  .lb-btn.primary:hover { background: var(--accent-dark); }
+  .lb-close, .lb-prev, .lb-next {
+    position: fixed;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+    z-index: 101;
+  }
+  .lb-close:hover, .lb-prev:hover, .lb-next:hover { background: rgba(255, 255, 255, .3); }
+  .lb-close { top: 20px; right: 22px; }
+  .lb-prev { left: 22px; top: 50%; transform: translateY(-50%); }
+  .lb-next { right: 22px; top: 50%; transform: translateY(-50%); }
+
+  footer {
+    text-align: center;
+    color: #a5a9b6;
+    font-size: 13px;
+    padding: 0 20px 34px;
+    line-height: 1.9;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">快搜图 <span>QuickPic</span></div>
+  <div class="slogan">输入关键词，搜索三个图库 · 国内网络推荐使用「360图片」源</div>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>
+      </svg>
+      <input id="kw" type="text" placeholder="搜索图片，例如：风景、猫咪、city night…" autocomplete="off">
+    </div>
+    <button class="search-btn" id="goBtn">搜 索</button>
+  </div>
+
+  <div class="hotwords" id="hotwords">
+    <span class="chip">风景</span>
+    <span class="chip">猫咪</span>
+    <span class="chip">city night</span>
+    <span class="chip">插画</span>
+    <span class="chip">flower</span>
+    <span class="chip">mountain</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-src="so360">360图片<span class="src-note">国内直连 · 推荐</span></button>
+  <button class="tab" data-src="openverse">Openverse<span class="src-note">综合免费图库</span></button>
+  <button class="tab" data-src="commons">维基共享<span class="src-note">Wikimedia Commons</span></button>
+</div>
+
+<div class="status" id="status">
+  <span class="big">🔍</span>
+  输入关键词开始搜索吧<br>支持中文 / 英文关键词
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<div class="more-wrap" id="moreWrap" style="display:none">
+  <button class="more-btn" id="moreBtn">加载更多</button>
+</div>
+
+<!-- 大图预览 -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" title="关闭 (Esc)">✕</button>
+  <button class="lb-prev" id="lbPrev" title="上一张 (←)">‹</button>
+  <button class="lb-next" id="lbNext" title="下一张 (→)">›</button>
+  <div class="lb-body">
+    <img id="lbImg" src="" alt="">
+    <div class="lb-bar">
+      <span class="desc" id="lbDesc"></span>
+      <button class="lb-btn primary" id="lbDownload">⬇ 下载图片</button>
+      <a class="lb-btn" id="lbSource" href="#" target="_blank" rel="noopener">来源页面</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  图片来自 <a href="https://image.so.com" target="_blank" rel="noopener">360图片</a>、
+  <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> 与
+  <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>，请遵循各图片的版权与授权许可使用。<br>
+  快搜图 · 单文件网页，可直接双击打开使用
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var kwInput = document.getElementById("kw");
+  var goBtn = document.getElementById("goBtn");
+  var gallery = document.getElementById("gallery");
+  var statusEl = document.getElementById("status");
+  var moreWrap = document.getElementById("moreWrap");
+  var moreBtn = document.getElementById("moreBtn");
+  var hotwords = document.getElementById("hotwords");
+
+  var currentSource = "so360";
+  var currentQuery = "";
+  var page = 1;          // openverse 页码 / commons 偏移
+  var items = [];        // 当前已加载的规范化结果
+  var loading = false;
+  var PAGE_SIZE = 24;
+
+  /* ---------- 状态显示 ---------- */
+  function showIdle(msg) {
+    statusEl.className = "status";
+    statusEl.innerHTML = '<span class="big">🔍</span>' + (msg || "输入关键词开始搜索吧<br>支持中文 / 英文关键词");
+    statusEl.style.display = "block";
+  }
+  function showLoading() {
+    statusEl.className = "status";
+    statusEl.innerHTML = '<div class="spinner"></div>正在搜索「' + escapeHtml(currentQuery) + "」…";
+    statusEl.style.display = "block";
+  }
+  function showError(msg) {
+    statusEl.className = "status error";
+    statusEl.innerHTML = '<span class="big">⚠️</span>' + msg;
+    statusEl.style.display = "block";
+  }
+  function hideStatus() { statusEl.style.display = "none"; }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var SRC_LABELS = { so360: "360图片", openverse: "Openverse", commons: "维基共享" };
+  function srcLabel(src) { return SRC_LABELS[src] || src; }
+
+  /* ---------- 图源适配器 ---------- */
+
+  // JSONP 加载器：通过 <script> 标签请求，不受跨域限制，file:// 本地打开也能用
+  var jsonpSeq = 0;
+  function jsonp(url) {
+    return new Promise(function (resolve, reject) {
+      var cbName = "__qp_cb_" + (++jsonpSeq) + "_" + Date.now();
+      var script = document.createElement("script");
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+      var timer = setTimeout(function () {
+        cleanup();
+        reject(new Error("请求超时，该图源可能无法访问，试试切换其他图源"));
+      }, 12000);
+      window[cbName] = function (data) { cleanup(); resolve(data); };
+      script.onerror = function () {
+        cleanup();
+        reject(new Error("网络请求失败，该图源可能无法访问，试试切换其他图源"));
+      };
+      script.src = url + "&callback=" + cbName;
+      document.head.appendChild(script);
+    });
+  }
+
+  // 360图片：国内直连，支持中文搜索，通过 JSONP 调用
+  function searchSo360(query, start) {
+    return jsonp("https://image.so.com/j?q=" + encodeURIComponent(query) +
+      "&src=360pic_normal&sn=" + start + "&pn=" + PAGE_SIZE)
+      .then(function (data) {
+        return (data.list || []).map(function (it) {
+          return {
+            thumb: it._thumb || it.thumb || it.img,
+            full: it.img || it._thumb,
+            title: (it.title || "图片").replace(/<[^>]*>/g, ""),
+            author: it.source || it.site || "网络图片",
+            source: "360图片" + (it.site ? " · " + it.site : ""),
+            pageUrl: it.link || "#"
+          };
+        });
+      });
+  }
+
+  // Openverse：聚合 CC 授权图库（Flickr、 museums 等），无需 key（部分网络环境可能无法直连）
+  function searchOpenverse(query, pageNum) {
+    var url = "https://api.openverse.org/v1/images/?q=" + encodeURIComponent(query) +
+      "&page_size=" + PAGE_SIZE + "&page=" + pageNum + "&mature=false";
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("Openverse 接口返回 " + r.status + "（匿名用户有每日限额，可稍后再试或切换图源）");
+      return r.json();
+    }).then(function (data) {
+      return (data.results || []).map(function (it) {
+        return {
+          thumb: it.thumbnail || it.url,
+          full: it.url,
+          title: it.title || "Untitled",
+          author: it.creator || it.source || "未知来源",
+          source: "Openverse · " + (it.source || "") + (it.license ? " · " + it.license.toUpperCase() : ""),
+          pageUrl: it.foreign_landing_url || "#"
+        };
+      });
+    });
+  }
+
+  // Wikimedia Commons：维基媒体共享资源，无需 key，中文搜索友好
+  function searchCommons(query, offset) {
+    var url = "https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*" +
+      "&generator=search&gsrsearch=" + encodeURIComponent(query + " filetype:bitmap") +
+      "&gsrnamespace=6&gsrlimit=" + PAGE_SIZE + "&gsroffset=" + offset +
+      "&prop=imageinfo&iiprop=url|mime|size&iiurlwidth=520";
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("维基共享接口返回 " + r.status);
+      return r.json();
+    }).then(function (data) {
+      var pages = (data.query && data.query.pages) || {};
+      var list = [];
+      Object.keys(pages).forEach(function (pid) {
+        var p = pages[pid];
+        var info = p.imageinfo && p.imageinfo[0];
+        if (!info) return;
+        list.push({
+          thumb: info.thumburl || info.url,
+          full: info.url,
+          title: (p.title || "").replace(/^File:/, ""),
+          author: "Wikimedia Commons",
+          source: "Wikimedia Commons",
+          pageUrl: info.descriptionurl || "#"
+        });
+      });
+      return list;
+    });
+  }
+
+  function doSearch() {
+    var q = kwInput.value.trim();
+    if (!q) { kwInput.focus(); return; }
+    if (loading) return;
+    currentQuery = q;
+    page = 1;
+    items = [];
+    gallery.innerHTML = "";
+    moreWrap.style.display = "none";
+    hotwords.style.display = "none";
+    showLoading();
+    loading = true;
+
+    var task;
+    if (currentSource === "so360") {
+      task = searchSo360(q, 0);
+    } else if (currentSource === "openverse") {
+      task = searchOpenverse(q, page);
+    } else {
+      task = searchCommons(q, 0);
+    }
+
+    task.then(function (list) {
+      loading = false;
+      if (!list.length) {
+        showIdle("没有找到「" + escapeHtml(q) + "」相关的图片<br>换个关键词试试，或切换另一个图源");
+        return;
+      }
+      items = list;
+      render(list);
+    }).catch(function (err) {
+      loading = false;
+      showError("搜索失败：" + escapeHtml(err.message || err) +
+        "<br>当前图源：" + srcLabel(currentSource) + " · 可点击上方其他图源标签重试");
+    });
+  }
+
+  function loadMore() {
+    if (loading || !currentQuery) return;
+    loading = true;
+    moreBtn.disabled = true;
+    moreBtn.textContent = "加载中…";
+
+    var task;
+    page += 1;
+    if (currentSource === "so360") {
+      task = searchSo360(currentQuery, (page - 1) * PAGE_SIZE);
+    } else if (currentSource === "openverse") {
+      task = searchOpenverse(currentQuery, page);
+    } else {
+      task = searchCommons(currentQuery, (page - 1) * PAGE_SIZE);
+    }
+
+    task.then(function (list) {
+      loading = false;
+      moreBtn.disabled = false;
+      moreBtn.textContent = "加载更多";
+      if (!list.length) {
+        moreWrap.style.display = "none";
+        return;
+      }
+      items = items.concat(list);
+      render(list);
+    }).catch(function () {
+      loading = false;
+      moreBtn.disabled = false;
+      moreBtn.textContent = "加载更多";
+    });
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render(list) {
+    hideStatus();
+    var frag = document.createDocumentFragment();
+    list.forEach(function (it) {
+      var card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML =
+        '<img loading="lazy" src="' + escapeHtml(it.thumb) + '" alt="' + escapeHtml(it.title) + '">' +
+        '<div class="info"><div class="title">' + escapeHtml(it.title) + '</div>' +
+        '<div class="meta">' + escapeHtml(it.source) + '</div></div>';
+      card.addEventListener("click", function () {
+        openLightbox(items.indexOf(it));
+      });
+      frag.appendChild(card);
+    });
+    gallery.appendChild(frag);
+    moreWrap.style.display = items.length >= PAGE_SIZE ? "block" : "none";
+  }
+
+  /* ---------- 大图预览 ---------- */
+  var lightbox = document.getElementById("lightbox");
+  var lbImg = document.getElementById("lbImg");
+  var lbDesc = document.getElementById("lbDesc");
+  var lbSource = document.getElementById("lbSource");
+  var lbIndex = 0;
+
+  function openLightbox(index) {
+    if (index < 0 || index >= items.length) return;
+    lbIndex = index;
+    var it = items[index];
+    lbImg.src = it.full;
+    lbImg.alt = it.title;
+    lbDesc.textContent = it.title + " · " + it.author;
+    lbSource.href = it.pageUrl;
+    lightbox.classList.add("open");
+  }
+  function closeLightbox() { lightbox.classList.remove("open"); }
+  function stepLightbox(delta) {
+    var next = lbIndex + delta;
+    if (next < 0) next = items.length - 1;
+    if (next >= items.length) next = 0;
+    openLightbox(next);
+  }
+
+  document.getElementById("lbClose").addEventListener("click", closeLightbox);
+  document.getElementById("lbPrev").addEventListener("click", function (e) { e.stopPropagation(); stepLightbox(-1); });
+  document.getElementById("lbNext").addEventListener("click", function (e) { e.stopPropagation(); stepLightbox(1); });
+  lightbox.addEventListener("click", function (e) {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (!lightbox.classList.contains("open")) {
+      if (e.key === "Enter" && document.activeElement === kwInput) doSearch();
+      return;
+    }
+    if (e.key === "Escape") closeLightbox();
+    if (e.key === "ArrowLeft") stepLightbox(-1);
+    if (e.key === "ArrowRight") stepLightbox(1);
+  });
+
+  /* ---------- 下载（blob 失败则退回新标签页打开） ---------- */
+  document.getElementById("lbDownload").addEventListener("click", function () {
+    var it = items[lbIndex];
+    if (!it) return;
+    var filename = (it.title || "image").replace(/[\\/:*?"<>|]/g, "_").slice(0, 60) +
+      (it.full.match(/\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i) || ["", ".jpg"])[1];
+    fetch(it.full).then(function (r) {
+      if (!r.ok) throw new Error("fail");
+      return r.blob();
+    }).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
+    }).catch(function () {
+      window.open(it.full, "_blank");
+    });
+  });
+
+  /* ---------- 事件绑定 ---------- */
+  goBtn.addEventListener("click", doSearch);
+  moreBtn.addEventListener("click", loadMore);
+
+  hotwords.addEventListener("click", function (e) {
+    if (e.target.classList.contains("chip")) {
+      kwInput.value = e.target.textContent;
+      doSearch();
+    }
+  });
+
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      if (tab.dataset.src === currentSource) return;
+      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      currentSource = tab.dataset.src;
+      if (currentQuery) { kwInput.value = currentQuery; doSearch(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>
