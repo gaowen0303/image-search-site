@@ -28,6 +28,10 @@
 
 已部署的在线版本：<https://af2ec66460104c4e88d4e32905b58c12.app.workbuddy.host>
 
+**方式三：GitHub Pages（可选）**
+
+本仓库已开启即用的静态页面，可在仓库 Settings → Pages 中将 Branch 设为 `main`，即可通过 `https://gaowen0303.github.io/image-search-site/` 访问。
+
 ## 技术说明
 
 - 纯 HTML + CSS + 原生 JavaScript，零依赖，零构建
